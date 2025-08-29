@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Cadastro de Alunos</title>
+        <link rel="stylesheet" href="style.css">
+      </head>
+      
+<body>
+  <h1>Cadastro de Alunos</h1>
+  
+  <form id="alunoForm">
+    <input type="text" id="nome" placeholder="Nome" required />
+    <input type="text" id="cpf" placeholder="CPF" required />
+    <input type="text" id="telefone" placeholder="Telefone" required />
+    <input type="email" id="email" placeholder="Email" required />
+    <input type="text" id="matricula" placeholder="Matrícula" required />
+    <input type="text" id="escola" placeholder="Escola" required />
+    <button type="submit" id="btnSalvar">Salvar</button>
+  </form>
+
+  <h2>Alunos Cadastrados</h2>
+  <table id="tabelaAlunos">
+    <thead>
+      <tr>
+        <th>Nome</th>
+        <th>CPF</th>
+        <th>Telefone</th>
+        <th>Email</th>
+        <th>Matrícula</th>
+        <th>Escola</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const form = document.getElementById('alunoForm');
+    const tabela = document.getElementById('tabelaAlunos').querySelector('tbody');
+    const btnSalvar = document.getElementById('btnSalvar');
+    let modoEdicao = false;
+    let matriculaEditando = null;
+
+    // Carregar alunos ao abrir
+    window.onload = carregarAlunos;
+
+    // Submeter formulário
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const aluno = {
+        nome: document.getElementById('nome').value,
+        cpf: document.getElementById('cpf').value,
+        telefone: document.getElementById('telefone').value,
+        email: document.getElementById('email').value,
+        matricula: document.getElementById('matricula').value,
+        escola: document.getElementById('escola').value,
+      };
+
+      if (modoEdicao) {
+        await fetch(`/api/alunos/${matriculaEditando}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(aluno),
+        });
+        modoEdicao = false;
+        matriculaEditando = null;
+        btnSalvar.textContent = 'Salvar';
+      } else {
+        await fetch('/api/alunos', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(aluno),
+        });
+      }
+
+      form.reset();
+      carregarAlunos();
+    });
+
+    async function carregarAlunos() {
+      const res = await fetch('/api/alunos');
+      const alunos = await res.json();
+      tabela.innerHTML = '';
+
+      alunos.forEach((aluno) => {
+        const tr = document.createElement('tr');
+
+        tr.innerHTML = `
+          <td>${aluno.nome}</td>
+          <td>${aluno.cpf}</td>
+          <td>${aluno.telefone}</td>
+          <td>${aluno.email}</td>
+          <td>${aluno.matricula}</td>
+          <td>${aluno.escola}</td>
+          <td>
+            <button onclick='editarAluno(${JSON.stringify(aluno)})'>Editar</button>
+            <button onclick='deletarAluno("${aluno.matricula}")'>Excluir</button>
+          </td>
+        `;
+        tabela.appendChild(tr);
+      });
+    }
+
+    function editarAluno(aluno) {
+      document.getElementById('nome').value = aluno.nome;
+      document.getElementById('cpf').value = aluno.cpf;
+      document.getElementById('telefone').value = aluno.telefone;
+      document.getElementById('email').value = aluno.email;
+      document.getElementById('matricula').value = aluno.matricula;
+      document.getElementById('escola').value = aluno.escola;
+      modoEdicao = true;
+      matriculaEditando = aluno.matricula;
+      btnSalvar.textContent = 'Atualizar';
+    }
+
+    async function deletarAluno(matricula) {
+      if (confirm('Tem certeza que deseja excluir este aluno?')) {
+        await fetch(`/api/alunos/${matricula}`, {
+          method: 'DELETE'
+        });
+        carregarAlunos();
+      }
+    }
+  </script>
+</body>
+</html>
